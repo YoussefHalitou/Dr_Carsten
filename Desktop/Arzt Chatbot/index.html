@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Widget Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        /* Chat Button */
+        .chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .chat-button:hover {
+            transform: scale(1.1);
+        }
+
+        .chat-button svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 380px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        .chat-container.active {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        /* Links in messages */
+        .message-content a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px solid #667eea;
+            transition: all 0.2s;
+        }
+
+        .message.user .message-content a {
+            color: white;
+            border-bottom-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message-content a:hover {
+            opacity: 0.8;
+        }
+
+        /* Link Cards */
+        .link-card {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .link-card:hover {
+            background: #e5e7eb;
+            transform: translateX(2px);
+        }
+
+        .link-card-icon {
+            font-size: 20px;
+            min-width: 24px;
+        }
+
+        .link-card-content {
+            flex: 1;
+        }
+
+        .link-card-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1f2937;
+            margin-bottom: 2px;
+        }
+
+        .link-card-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .link-card-arrow {
+            color: #9ca3af;
+            font-size: 18px;
+        }
+
+        /* Quick Replies */
+        .quick-replies {
+            padding: 0 20px 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: #f9fafb;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .quick-reply-btn {
+            background: white;
+            border: 1px solid #e5e7eb;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #374151;
+        }
+
+        .quick-reply-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Chat Input */
+        .chat-input {
+            padding: 16px 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            border: 1px solid #e5e7eb;
+            border-radius: 24px;
+            padding: 10px 16px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+
+        .send-button svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 12px;
+            width: fit-content;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            .chat-container {
+                width: calc(100vw - 40px);
+                height: calc(100vh - 120px);
+                bottom: 90px;
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Chat Button -->
+    <button class="chat-button" id="chatButton">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+        </svg>
+    </button>
+
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer">
+        <!-- Header -->
+        <div class="chat-header">
+            <div>
+                <h3>Online-Rezeption</h3>
+                <p>Wir helfen Ihnen gerne weiter</p>
+            </div>
+            <button class="close-button" id="closeButton">&times;</button>
+        </div>
+
+        <!-- Messages -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-content">
+                    Willkommen! Wie können wir Ihnen heute helfen?
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <!-- Quick Replies -->
+        <div class="quick-replies" id="quickReplies">
+            <button class="quick-reply-btn" data-reply="Termin vereinbaren">📅 Termin vereinbaren</button>
+            <button class="quick-reply-btn" data-reply="Termin absagen">📅 Termin absagen</button>
+            <button class="quick-reply-btn" data-reply="Befund anfragen">📋 Befund anfragen</button>
+            <button class="quick-reply-btn" data-reply="Rezept anfordern">💊 Rezept anfordern</button>
+            <button class="quick-reply-btn" data-reply="Krankmeldung anfordern">📝 Krankmeldung</button>
+            <button class="quick-reply-btn" data-reply="Überweisung anfordern">📄 Überweisung</button>
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Nachricht eingeben...">
+            <button class="send-button" id="sendButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Chat responses database with links
+        const responses = {
+            'termin vereinbaren': {
+                text: 'Gerne helfe ich Ihnen bei der Terminvereinbarung.',
+                links: [
+                    { icon: '📞', title: 'Telefonisch buchen', subtitle: 'Rufen Sie uns direkt an', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📅', title: 'Online-Terminbuchung', subtitle: 'Termin online vereinbaren', url: '#online-termin', action: 'online-termin' },
+                    { icon: '📧', title: 'Per E-Mail anfragen', subtitle: 'termin@praxis.de', url: 'mailto:termin@praxis.de', action: 'email' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'termin absagen': {
+                text: 'Um einen Termin abzusagen, wählen Sie bitte eine Option:',
+                links: [
+                    { icon: '📞', title: 'Telefonisch absagen', subtitle: 'Rufen Sie uns an', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📧', title: 'Per E-Mail absagen', subtitle: 'termin@praxis.de', url: 'mailto:termin@praxis.de', action: 'email' },
+                    { icon: '💬', title: 'Hier im Chat absagen', subtitle: 'Geben Sie Ihre Daten ein', action: 'termin-absagen-formular' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'befund anfragen': {
+                text: 'Ihre Befunde können Sie hier abrufen:',
+                links: [
+                    { icon: '📥', title: 'Befunde senden', subtitle: 'Befunde per E-Mail erhalten', action: 'befunde-senden' },
+                    { icon: '🔐', title: 'Patientenportal', subtitle: 'Sicherer Login erforderlich', url: '#patientenportal', action: 'patientenportal' },
+                    { icon: '📞', title: 'Telefonische Auskunft', subtitle: 'Mo-Fr 8:00-18:00', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '🏥', title: 'Persönlich abholen', subtitle: 'In Ihrer Praxis', action: 'abholen' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'rezept anfordern': {
+                text: 'Sie können Ihr Rezept auf verschiedene Arten anfordern:',
+                links: [
+                    { icon: '📱', title: 'Online-Formular', subtitle: 'Rezept digital anfordern', action: 'rezept-formular' },
+                    { icon: '📞', title: 'Telefonisch', subtitle: 'Rufen Sie uns an', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📧', title: 'Per E-Mail', subtitle: 'rezept@praxis.de', url: 'mailto:rezept@praxis.de', action: 'email' },
+                    { icon: '🏥', title: 'Persönlich abholen', subtitle: 'In der Praxis', action: 'abholen-rezept' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'krankmeldung anfordern': {
+                text: 'Krankmeldung (Arbeitsunfähigkeitsbescheinigung) anfordern:',
+                links: [
+                    { icon: '📝', title: 'AU-Formular ausfüllen', subtitle: 'Krankmeldung online anfordern', action: 'au-formular' },
+                    { icon: '📞', title: 'Telefonisch anfordern', subtitle: 'Rufen Sie uns an', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📧', title: 'Per E-Mail anfordern', subtitle: 'au@praxis.de', url: 'mailto:au@praxis.de', action: 'email' },
+                    { icon: '🏥', title: 'Persönlich abholen', subtitle: 'In der Praxis', action: 'abholen-au' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'überweisung anfordern': {
+                text: 'Überweisung zu einem Facharzt anfordern:',
+                links: [
+                    { icon: '📋', title: 'Überweisungs-Formular', subtitle: 'Online anfordern', action: 'ueberweisung-formular' },
+                    { icon: '📞', title: 'Telefonisch anfordern', subtitle: 'Rufen Sie uns an', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📧', title: 'Per E-Mail anfordern', subtitle: 'ueberweisung@praxis.de', url: 'mailto:ueberweisung@praxis.de', action: 'email' },
+                    { icon: '🏥', title: 'Persönlich abholen', subtitle: 'In der Praxis', action: 'abholen-ueberweisung' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'befunde-senden': {
+                text: 'Befunde per E-Mail erhalten:',
+                html: `
+                    📥 <strong>Befunde digital erhalten</strong><br><br>
+                    Bitte geben Sie folgende Informationen an:<br>
+                    • Ihr vollständiger Name<br>
+                    • Geburtsdatum<br>
+                    • E-Mail-Adresse<br>
+                    • Art der Untersuchung<br>
+                    • Datum der Untersuchung<br><br>
+                    Wir senden Ihnen die Befunde innerhalb von 24 Stunden zu.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'feedback geben': {
+                text: 'Wir freuen uns über Ihr Feedback!',
+                links: [
+                    { icon: '⭐', title: 'Bewertung abgeben', subtitle: 'Bewerten Sie uns', url: '#bewertung', action: 'bewertung' },
+                    { icon: '💬', title: 'Feedback-Formular', subtitle: 'Ihre Meinung ist uns wichtig', action: 'feedback-formular' },
+                    { icon: '📧', title: 'Per E-Mail', subtitle: 'feedback@praxis.de', url: 'mailto:feedback@praxis.de', action: 'email' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'notfall': {
+                text: '🚨 Notfall-Informationen:',
+                html: `
+                    <strong>Bei lebensbedrohlichen Notfällen:</strong><br>
+                    🚑 <a href="tel:112">Notruf 112</a><br><br>
+                    <strong>Ärztlicher Bereitschaftsdienst:</strong><br>
+                    📞 <a href="tel:116117">116 117</a><br><br>
+                    <strong>Giftnotruf:</strong><br>
+                    ☎️ <a href="tel:05519240">0551 19240</a>
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'für zuweiser': {
+                text: 'Informationen für Zuweiser und Kollegen:',
+                links: [
+                    { icon: '👥', title: 'Zuweiserportal', subtitle: 'Login für Kollegen', url: '#zuweiserportal', action: 'zuweiserportal' },
+                    { icon: '📋', title: 'Patient überweisen', subtitle: 'Überweisung senden', action: 'ueberweisung-zuweiser' },
+                    { icon: '📞', title: 'Direkter Kontakt', subtitle: 'Kollegiale Beratung', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📧', title: 'E-Mail für Zuweiser', subtitle: 'zuweiser@praxis.de', url: 'mailto:zuweiser@praxis.de', action: 'email' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'öffnungszeiten': {
+                text: 'Unsere Öffnungszeiten:',
+                html: `
+                    <strong>Montag - Freitag:</strong><br>
+                    🕐 08:00 - 12:00 Uhr<br>
+                    🕐 14:00 - 18:00 Uhr<br><br>
+                    <strong>Blutentnahme:</strong><br>
+                    🩸 Mo-Do: 07:15 - 08:30 Uhr
+                `,
+                links: [
+                    { icon: '📅', title: 'Termin vereinbaren', subtitle: 'Jetzt buchen', action: 'termin vereinbaren' },
+                    { icon: '🚨', title: 'Notdienst', subtitle: 'Außerhalb der Öffnungszeiten', action: 'notfall' }
+                ],
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'kontakt': {
+                text: 'So erreichen Sie uns:',
+                links: [
+                    { icon: '📞', title: 'Telefon', subtitle: '04461 - 81 666', url: 'tel:04461-81666', action: 'telefon' },
+                    { icon: '📧', title: 'E-Mail', subtitle: 'info@praxis.de', url: 'mailto:info@praxis.de', action: 'email' },
+                    { icon: '🌐', title: 'Website', subtitle: 'www.praxis.de', url: 'https://www.praxis.de', action: 'website' },
+                    { icon: '📍', title: 'Anfahrt', subtitle: 'Google Maps öffnen', url: 'https://maps.google.com', action: 'maps' },
+                    { icon: '💬', title: 'WhatsApp', subtitle: 'Chat starten', url: 'https://wa.me/4944618166', action: 'whatsapp' }
+                ],
+                quickReplies: ['Termin vereinbaren', 'Zurück zum Hauptmenü']
+            },
+            'rezept-formular': {
+                text: 'Rezept-Anforderung:',
+                html: `
+                    📝 <strong>Bitte geben Sie folgende Informationen an:</strong><br><br>
+                    • Ihr vollständiger Name<br>
+                    • Geburtsdatum<br>
+                    • Medikamentenname<br>
+                    • Dosierung<br>
+                    • Telefonnummer<br><br>
+                    Wir melden uns innerhalb von 24 Stunden bei Ihnen.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'au-formular': {
+                text: 'Krankmeldung (AU) anfordern:',
+                html: `
+                    📝 <strong>Arbeitsunfähigkeitsbescheinigung</strong><br><br>
+                    Bitte geben Sie folgende Informationen an:<br>
+                    • Ihr vollständiger Name<br>
+                    • Geburtsdatum<br>
+                    • Telefonnummer<br>
+                    • Grund der Krankmeldung<br>
+                    • Gewünschter Zeitraum<br>
+                    • Arbeitgeber (Name und Adresse)<br><br>
+                    Ein Arzt wird sich mit Ihnen in Verbindung setzen.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'ueberweisung-formular': {
+                text: 'Überweisung anfordern:',
+                html: `
+                    📋 <strong>Überweisung zum Facharzt</strong><br><br>
+                    Bitte geben Sie folgende Informationen an:<br>
+                    • Ihr vollständiger Name<br>
+                    • Geburtsdatum<br>
+                    • Telefonnummer<br>
+                    • Facharzt/Fachrichtung<br>
+                    • Grund der Überweisung<br>
+                    • Name des Facharztes (falls bekannt)<br><br>
+                    Wir stellen die Überweisung aus und informieren Sie.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'termin-absagen-formular': {
+                text: 'Termin absagen:',
+                html: `
+                    📝 <strong>Termin stornieren</strong><br><br>
+                    Bitte geben Sie folgende Informationen an:<br>
+                    • Ihr vollständiger Name<br>
+                    • Geburtsdatum<br>
+                    • Termin-Datum und Uhrzeit<br>
+                    • Telefonnummer<br><br>
+                    Ihr Termin wird umgehend storniert.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'abholen-rezept': {
+                text: 'Rezept persönlich abholen:',
+                html: `
+                    🏥 <strong>Abholung in der Praxis</strong><br><br>
+                    Ihr Rezept liegt für Sie bereit.<br><br>
+                    <strong>Öffnungszeiten:</strong><br>
+                    Mo-Fr: 08:00 - 12:00 Uhr<br>
+                    Mo-Fr: 14:00 - 18:00 Uhr<br><br>
+                    Bitte bringen Sie Ihre Versichertenkarte mit.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'abholen-au': {
+                text: 'Krankmeldung persönlich abholen:',
+                html: `
+                    🏥 <strong>Abholung in der Praxis</strong><br><br>
+                    Ihre Arbeitsunfähigkeitsbescheinigung liegt für Sie bereit.<br><br>
+                    <strong>Öffnungszeiten:</strong><br>
+                    Mo-Fr: 08:00 - 12:00 Uhr<br>
+                    Mo-Fr: 14:00 - 18:00 Uhr<br><br>
+                    Bitte bringen Sie Ihre Versichertenkarte mit.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'abholen-ueberweisung': {
+                text: 'Überweisung persönlich abholen:',
+                html: `
+                    🏥 <strong>Abholung in der Praxis</strong><br><br>
+                    Ihre Überweisung liegt für Sie bereit.<br><br>
+                    <strong>Öffnungszeiten:</strong><br>
+                    Mo-Fr: 08:00 - 12:00 Uhr<br>
+                    Mo-Fr: 14:00 - 18:00 Uhr<br><br>
+                    Bitte bringen Sie Ihre Versichertenkarte mit.
+                `,
+                quickReplies: ['Zurück zum Hauptmenü']
+            },
+            'zurück zum hauptmenü': {
+                text: 'Wie kann ich Ihnen weiterhelfen?',
+                quickReplies: ['Termin vereinbaren', 'Termin absagen', 'Befund anfragen', 'Rezept anfordern', 'Krankmeldung anfordern', 'Überweisung anfordern', 'Öffnungszeiten', 'Kontakt']
+            },
+            'default': {
+                text: 'Vielen Dank für Ihre Nachricht. Ein Mitarbeiter wird sich in Kürze bei Ihnen melden.',
+                links: [
+                    { icon: '📞', title: 'Dringend?', subtitle: 'Jetzt anrufen', url: 'tel:04461-81666', action: 'telefon' }
+                ],
+                quickReplies: ['Termin vereinbaren', 'Rezept anfordern', 'Krankmeldung anfordern', 'Kontakt']
+            }
+        };
+
+        // DOM Elements
+        const chatButton = document.getElementById('chatButton');
+        const chatContainer = document.getElementById('chatContainer');
+        const closeButton = document.getElementById('closeButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const quickReplies = document.getElementById('quickReplies');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Toggle chat
+        chatButton.addEventListener('click', () => {
+            chatContainer.classList.add('active');
+            messageInput.focus();
+        });
+
+        closeButton.addEventListener('click', () => {
+            chatContainer.classList.remove('active');
+        });
+
+        // Send message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message === '') return;
+
+            addMessage(message, 'user');
+            messageInput.value = '';
+
+            // Show typing indicator
+            typingIndicator.classList.add('active');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Simulate bot response
+            setTimeout(() => {
+                typingIndicator.classList.remove('active');
+                handleBotResponse(message);
+            }, 1000 + Math.random() * 1000);
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Add message to chat
+        function addMessage(text, sender, html = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (html) {
+                contentDiv.innerHTML = html;
+            } else {
+                contentDiv.textContent = text;
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.insertBefore(messageDiv, typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add link cards
+        function addLinkCards(links) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.style.maxWidth = '85%';
+            
+            links.forEach(link => {
+                const card = document.createElement('div');
+                card.className = 'link-card';
+                card.innerHTML = `
+                    <div class="link-card-icon">${link.icon}</div>
+                    <div class="link-card-content">
+                        <div class="link-card-title">${link.title}</div>
+                        <div class="link-card-subtitle">${link.subtitle}</div>
+                    </div>
+                    <div class="link-card-arrow">→</div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    if (link.url) {
+                        window.open(link.url, '_blank');
+                    }
+                    if (link.action) {
+                        addMessage(link.title, 'user');
+                        typingIndicator.classList.add('active');
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        setTimeout(() => {
+                            typingIndicator.classList.remove('active');
+                            handleBotResponse(link.action);
+                        }, 1000);
+                    }
+                });
+                
+                contentDiv.appendChild(card);
+            });
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.insertBefore(messageDiv, typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Handle bot response
+        function handleBotResponse(userMessage) {
+            const normalizedMessage = userMessage.toLowerCase().trim();
+            let response = responses['default'];
+
+            // Check for matching response
+            for (const [key, value] of Object.entries(responses)) {
+                if (normalizedMessage.includes(key)) {
+                    response = value;
+                    break;
+                }
+            }
+
+            // Add text message
+            if (response.html) {
+                addMessage('', 'bot', response.html);
+            } else {
+                addMessage(response.text, 'bot');
+            }
+
+            // Add link cards if available
+            if (response.links && response.links.length > 0) {
+                addLinkCards(response.links);
+            }
+
+            // Update quick replies
+            updateQuickReplies(response.quickReplies);
+        }
+
+        // Update quick replies
+        function updateQuickReplies(replies) {
+            quickReplies.innerHTML = '';
+            
+            if (replies.length === 0) {
+                quickReplies.style.display = 'none';
+                return;
+            }
+
+            quickReplies.style.display = 'flex';
+            replies.forEach(reply => {
+                const button = document.createElement('button');
+                button.className = 'quick-reply-btn';
+                button.textContent = reply;
+                button.addEventListener('click', () => {
+                    addMessage(reply, 'user');
+                    typingIndicator.classList.add('active');
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    setTimeout(() => {
+                        typingIndicator.classList.remove('active');
+                        handleBotResponse(reply);
+                    }, 1000);
+                });
+                quickReplies.appendChild(button);
+            });
+        }
+
+        // Quick reply buttons
+        document.querySelectorAll('.quick-reply-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const reply = button.getAttribute('data-reply');
+                addMessage(reply, 'user');
+                typingIndicator.classList.add('active');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                setTimeout(() => {
+                    typingIndicator.classList.remove('active');
+                    handleBotResponse(reply);
+                }, 1000);
+            });
+        });
+    </script>
+
+</body>
+</html>

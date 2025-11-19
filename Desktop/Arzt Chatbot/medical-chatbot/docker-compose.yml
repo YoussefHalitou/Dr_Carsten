@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: medical-chatbot-db
+    environment:
+      POSTGRES_DB: medical_chatbot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: medical-chatbot-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/medical_chatbot
+      CORS_ORIGINS: http://localhost:3000,https://860c49b8f271.ngrok-free.app
+      ENFORCE_HTTPS: 'false'
+    ports:
+      - '8000:8000'
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: https://b988b0fbe7bd.ngrok-free.app
+        VITE_API_KEY: ${API_KEY:-change-me}
+    container_name: medical-chatbot-frontend
+    depends_on:
+      - backend
+    ports:
+      - '3000:80'
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -1,0 +1,61 @@
+# Environment files
+.env
+.env.*
+*.env
+
+# OS files
+.DS_Store
+**/.DS_Store
+.Trash/
+Music/
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+*.swp
+*.swo
+
+# Logs
+*.log
+*.pid
+
+# Cache
+.cache/
+.npm/
+.node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.python_history
+
+# Node
+node_modules/
+**/node_modules/
+**/dist/
+
+# Docker
+docker-compose.yml.bak*
+*.bak
+
+# Personal files
+.Rhistory
+.lesshst
+.local/
+.config/
+.fly/
+.gk/
+.ollama/
+.pyenv/
+.quokka/
+.render/
+.rstudio-desktop/
+.rustup/
+.spyder-py3/
+.nvm/
+
+# System
+system_prompt.txt
+
