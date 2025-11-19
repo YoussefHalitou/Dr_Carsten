@@ -26,7 +26,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/medical_chatbot
-      CORS_ORIGINS: http://localhost:3000,https://860c49b8f271.ngrok-free.app
+      CORS_ORIGINS: http://localhost:3000,https://cosmic-jalebi-b78f17.netlify.app,https://chatbotcarsten.live
       ENFORCE_HTTPS: 'false'
     ports:
       - '8000:8000'
