@@ -59,22 +59,59 @@ app.add_middleware(SlowAPIMiddleware)
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next) -> Response:
+    """
+    Security headers middleware.
+    
+    Important for iframe embedding:
+    - CSP frame-ancestors: Allows embedding from chatbotcarsten.live and Netlify domains
+    - X-Frame-Options: Removed to allow cross-origin iframe embedding
+    - CORS is handled by CORSMiddleware above
+    """
     response = await call_next(request)
+    
+    # Get the Origin header for dynamic CSP frame-ancestors
+    origin = request.headers.get("origin")
+    allowed_origins = settings.cors_origins
+    
+    # Build frame-ancestors directive dynamically
+    # Allow self and all CORS-allowed origins
+    frame_ancestors = ["'self'"]
+    for allowed_origin in allowed_origins:
+        if allowed_origin not in frame_ancestors:
+            frame_ancestors.append(allowed_origin)
+    
+    frame_ancestors_str = " ".join(frame_ancestors)
+    
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
     if request.url.path.startswith(("/docs", "/redoc", "/openapi.json", "/swagger-ui")):
+        # Swagger UI needs more permissive CSP
         response.headers[
             "Content-Security-Policy"
         ] = (
-            "default-src 'self'; "
+            f"default-src 'self'; "
+            f"frame-ancestors {frame_ancestors_str}; "
             "img-src 'self' data:; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "font-src 'self' data: https://cdn.jsdelivr.net"
         )
     else:
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        # API endpoints: Allow iframe embedding from allowed origins
+        # This is important for the frontend to work when embedded on Netlify
+        response.headers[
+            "Content-Security-Policy"
+        ] = (
+            f"default-src 'self'; "
+            f"frame-ancestors {frame_ancestors_str};"
+        )
+    
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    
+    # DO NOT set X-Frame-Options - it conflicts with CSP frame-ancestors
+    # and would block iframe embedding. CSP frame-ancestors is the modern way.
+    # X-Frame-Options removed to allow cross-origin iframe embedding
+    
     return response
 
 
