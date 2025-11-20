@@ -8,8 +8,7 @@ const apiClient = axios.create({
   baseURL: BACKEND_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'X-API-Key': API_KEY,
-    'ngrok-skip-browser-warning': 'true'
+    'X-API-Key': API_KEY
   },
   timeout: 15000
 });
